@@ -21,6 +21,7 @@
     "typescript": "^2.1.5"
   },
   "scripts": {
+    "start": "budo src/index.ts:bundle.js --live -- -p tsify",
     "test": "mocha"
   },
   "author": "",
