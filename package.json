@@ -1,0 +1,24 @@
+{
+  "name": "cycle-conf-2017-talk",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "xstream": "^9.3.0"
+  },
+  "devDependencies": {
+    "browserify": "^14.0.0",
+    "budo": "^9.4.7",
+    "garnish": "^5.2.0",
+    "tsify": "^3.0.1",
+    "typescript": "^2.1.5"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "author": "",
+  "license": "ISC"
+}
