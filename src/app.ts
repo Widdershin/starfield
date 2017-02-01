@@ -1,5 +1,19 @@
 import {div, button, svg, h} from '@cycle/dom';
 import xs from 'xstream';
+import * as keycode from 'keycode';
+
+
+function currentSlide (state) {
+  return state.slides[state.currentSlide];
+}
+
+function nextSlide (state) {
+  state.currentSlide += 1;
+  state.targetPosition = currentSlide(state).position - 1;
+  state.speed = 0.01;
+  state.tweenStartPosition = state.currentPosition;
+  return state;
+}
 
 function makeStarField (stars, scale, {width, height}) {
   return new Array(stars)
@@ -24,6 +38,20 @@ function setSpeed (state, speed) {
 }
 
 function updateStarField (state, frame) {
+  state.currentPosition += state.speed;
+
+  const totalDistance = state.targetPosition - state.tweenStartPosition;
+  const distanceToPosition = state.targetPosition - state.currentPosition;
+
+  if (distanceToPosition < 0) {
+    state.speed /= 1.1;
+  } else if (distanceToPosition < totalDistance / 2) {
+    state.speed /= 1.04;
+  } else if (state.currentPosition < state.targetPosition) {
+    state.speed *= 1.04;
+  }
+
+
   const newStars = state.stars.map(star => {;
     if (star.x > 0.5 || star.x < -0.5 || star.y > 0.5 || star.y < -0.5) {
       star.x = Math.random() * 0.001 - 0.0005;
@@ -61,9 +89,38 @@ function renderStar (star, key, speed, {width, height}) {
         x2: width / 2 + star.x * beamMultiplier * width,
         y2: height / 2 + star.y * beamMultiplier * height,
         width: 1,
-        stroke: 'white'
+        stroke: '#DDD'
       }
     })
+  );
+}
+
+function renderSlides (slides, position, {width, height}) {
+  return slides.map(slide => renderSlide(slide, position, {width, height}));
+}
+
+function renderSlide (slide, position, {width, height}) {
+  const distance = slide.position - position;
+
+  const scale = 1 / distance;
+
+  if (scale < 0) {
+    return h('text');
+  }
+
+  return (
+    h('text', {
+      attrs: {
+        x: width / 2,
+        y: height / 2,
+        fill: 'white',
+        'font-family': 'Catamaran',
+        'font-size': 25 * scale,
+        'text-anchor': 'middle',
+        'dominant-baseline': 'central',
+        'letter-spacing': `${1 * scale}px`
+      }
+    }, slide.text)
   );
 }
 
@@ -73,24 +130,56 @@ function App (sources) {
 
   const initialState = {
     stars: [],
-    speed: 1
+    speed: 0,
+    currentPosition: 0,
+    targetPosition: 0,
+    tweenStartPosition: 0,
+    currentSlide: 0,
+    slides: [
+      {
+        position: 0,
+        text: ''
+      },
+
+      {
+        position: 100,
+        text: 'Hello Universe'
+      },
+
+      {
+        position: 200,
+        text: 'A journey through space and time'
+      },
+
+      {
+        position: 500,
+        text: 'Another slide for fun'
+      }
+    ]
   };
 
   const moveStars$ = frame$.map(frame => state => updateStarField(state, frame));
-  const makeStars$ = sources.Time.periodic(5).take(600).mapTo(makeStars);
 
   const mouseMove$ = sources.DOM
     .select('document')
     .events('mousemove')
     .compose(sources.Time.throttleAnimation)
 
-  const setSpeed$ = mouseMove$
-    .map(ev => state => setSpeed(state, ev.clientX));
+  const nextSlide$ = sources.DOM
+    .select('document')
+    .events('keydown')
+    .filter(ev => ev.code === 'Space')
+    .mapTo(nextSlide);
+
+  const makeStars$ = nextSlide$
+    .take(1)
+    .map(() => sources.Time.periodic(5).take(600).mapTo(makeStars))
+    .flatten();
 
   const reducer$ = xs.merge(
     moveStars$,
     makeStars$,
-    setSpeed$
+    nextSlide$
   );
 
   const state$ = reducer$.fold((stars, reducer: Function) => reducer(stars), initialState);
@@ -102,8 +191,8 @@ function App (sources) {
 
       return (
         h('svg', {attrs: {width, height}}, [
-          ...renderStars(state.stars, state.speed, {width, height})
-          //h('text', {attrs: {x: width / 2, y: height / 2, fill: 'white', 'font-family': 'Impact', 'font-size': 25, 'text-anchor': 'middle'}}, 'A journey through space and time')
+          ...renderStars(state.stars, state.speed, {width, height}),
+          ...renderSlides(state.slides, state.currentPosition, {width, height})
         ])
       )
     })

@@ -1,13 +1,14 @@
+@import url('https://fonts.googleapis.com/css?family=Catamaran:500,700');
+
 html, body {
-  background: #111;
+  background: black;
   color: #EEE;
 
   padding: 0;
   margin: 0;
 
   overflow: hidden;
+
+  font-family: 'Cabin', sans-serif;
+  font-weight: 700;
 }
-
-
-
-
